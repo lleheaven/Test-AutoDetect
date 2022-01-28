@@ -18,9 +18,11 @@ function Get-FederationProvider {
             Write-Host
             Write-Host "Get Federation Provider to see if it's a sovereign cloud account." -ForegroundColor Green
             $getFederationProviderServiceUrl =  "https://odc.officeapps.live.com/odc/v2.1/federationprovider?domain=$($EmailAddress[1])"
-            $getFederationProviderResponse = Invoke-WebRequest -Uri $getFederationProviderServiceUrl -Headers $headers -Method GET
+            $getFederationProviderResponse = Invoke-WebRequest -Uri $getFederationProviderServiceUrl -Headers $headers -Method GET -UseBasicParsing
             $getFederationProviderResult = $getFederationProviderResponse.Content | ConvertFrom-Json
             $configProvider = $getFederationProviderResult.configProviderName
+			
+			Write-Host $getFederationProviderResult.configProviderName -ForegroundColor Green
 
             #Check if it returns configProviderName. If not, it should not be a sovereign cloud account.
             #Conitnue with AutoDetect.
@@ -53,7 +55,7 @@ function Get-ServiceEndpoints {
             Write-Host
             Write-Host "Calling OfficeClient service to get services endpoints." -ForegroundColor Yellow
             $configServiceUrl = "https://officeclient.microsoft.com/config16processed?rs=en-us&build=16.0.7612"
-            $getServiceEndpointsResponse = Invoke-WebRequest -Uri "$($configServiceUrl)&services=ExchangeAutoDiscoverV2Url,ExchangeWebService&fp=$($configProvider)" -Headers $headers -Method GET
+            $getServiceEndpointsResponse = Invoke-WebRequest -Uri "$($configServiceUrl)&services=ExchangeAutoDiscoverV2Url,ExchangeWebService&fp=$($configProvider)" -Headers $headers -Method GET -UseBasicParsing 
             $getServiceEndpointsResult = $getServiceEndpointsResponse.Content | ConvertFrom-Json
             $exchangeWebServiceUrl = $getServiceEndpointsResult."o:OfficeConfig"."o:services"."o:service"[0]."o:url"
             $authorityUrl =  $getServiceEndpointsResult."o:OfficeConfig"."o:services"."o:service"[0]."o:ticket"."@o:authorityUrl"
@@ -80,7 +82,7 @@ function Test-AutoDetect {
             $encodedEmailAddress = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Email))
             $authorizationHeader = @{'Authorization' = "Basic " + $encodedEmailAddress}
             $userAgent = "PowershellRuntime"
-            $autoDetectResponse = Invoke-WebRequest -Uri $autoDetectURL -Headers $authorizationHeader -UserAgent $userAgent  -Method GET
+            $autoDetectResponse = Invoke-WebRequest -Uri $autoDetectURL -Headers $authorizationHeader -UserAgent $userAgent  -Method GET -UseBasicParsing 
             $autoDetectResult = $autoDetectResponse.Content | ConvertFrom-Json
             $requestId = $autoDetectResponse.Headers.'X-Request-Id'
             $responseTime = $autoDetectResponse.Headers.'X-Response-Time'
@@ -233,7 +235,7 @@ function Test-OnPremAutoDV2 {
                 'Accept'         = 'application/json'
                 'Content-Length' = '0'
             }
-            $timeTaken = Measure-Command -Expression {$onPremAutoDV2Response = Invoke-WebRequest -Uri $onPremAutoDV2Url -Headers $headers -Method GET} 
+            $timeTaken = Measure-Command -Expression {$onPremAutoDV2Response = Invoke-WebRequest -Uri $onPremAutoDV2Url -Headers $headers -Method GET -UseBasicParsing} 
             $onPremAutoDV2Result = $onPremAutoDV2Response.Content | ConvertFrom-Json
             $milliseconds = $timeTaken.TotalMilliseconds
             $milliseconds = [Math]::Round($milliseconds, 1)
@@ -282,7 +284,7 @@ function Test-EXOAutoDV2 {
             Write-Host
             Write-Host "Calling EXO AutoDiscover endpoint to discover the Mailbox" -ForegroundColor Green
             $exoAutoDEndpoint =  "https://outlook.office.com/autodiscover/autodiscover.json?Email=$($Email)&Protocol=ActiveSync"
-            $timeTaken = Measure-Command -Expression {$exoAutoDResponse = Invoke-WebRequest -Uri $exoAutoDEndpoint -Headers $headers -Method GET} 
+            $timeTaken = Measure-Command -Expression {$exoAutoDResponse = Invoke-WebRequest -Uri $exoAutoDEndpoint -Headers $headers -Method GET -UseBasicParsing} 
             $exoAutoDResult = $exoAutoDResponse.Content | ConvertFrom-Json
             $milliseconds = $timeTaken.TotalMilliseconds
             $milliseconds = [Math]::Round($milliseconds, 1)
